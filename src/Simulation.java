@@ -26,12 +26,15 @@ public class Simulation {
      * @param width
      * @param height
      */
-    public Simulation(int width, int height) {
+    public Simulation(int width, int height, int seed) {
         this.width = width;
         this.height = height;
         // first day and no wind
         this.day = 1;
         this.wind = "none";
+
+        this.trees = new Tree[height][width];
+        generateTerrain(seed);
         // TODO
     }
 
@@ -91,6 +94,18 @@ public class Simulation {
         System.out.printf("Set wind to %s\n", this.wind);
     }
 
+    public int getWidth() {
+        return this.width;
+    }
+
+    public int getHeight() {
+        return this.height;
+    }
+
+    public boolean isValidCoord(int x, int y) {
+        return ((x >= 0 && x < getHeight()) && (y >= 0 && y < getWidth()));
+    }
+
     /**
      * prints the current damage and pollution data
      */
@@ -105,6 +120,14 @@ public class Simulation {
     public void printStatus() {
         System.out.printf("Day: %d\n", this.day);
         System.out.printf("Wind: %s\n", this.wind);
+    }
+
+    public void printHeightMap() {
+        //
+    }
+
+    public void printFireMap() {
+        //
     }
 
     /**
