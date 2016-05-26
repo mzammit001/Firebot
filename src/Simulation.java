@@ -4,6 +4,7 @@
  * <your unikey>
  */
 
+import java.awt.Point;
 import java.util.*;
 
 public class Simulation {
@@ -57,18 +58,9 @@ public class Simulation {
      */
     public void fire(int[] region) {
         boolean blazing = false;
-        boolean hasRange = true;
 
-        int[] origin = new int[2];
-        int[] range  = new int[2];
-
-        // store the begin co-ords
-        System.arraycopy(region, 0, origin, 0, 2);
-
-        if (region.length == 4)
-            System.arraycopy(region, 2, range, 0, 2);
-        else
-            hasRange = false;
+        Point p0 = new Point( region[0], region[1] );
+        Point p1 = new Point( region[2], region[3] );
 
         if (blazing)
             System.out.printf("Started a fire\n");
@@ -81,7 +73,15 @@ public class Simulation {
      * @param region
      */
     public void extinguish(int[] region) {
+        boolean extinguished = false;
 
+        Point p0 = new Point( region[0], region[1] );
+        Point p1 = new Point( region[2], region[3] );
+
+        if (extinguished)
+            System.out.printf("Extinguished fires\n");
+        else
+            System.out.printf("No fires to extinguish\n");
     }
 
     /**
@@ -102,6 +102,9 @@ public class Simulation {
         return this.height;
     }
 
+    /**
+     * check that the coordinate is within the bounds of the terrain
+     */
     public boolean isValidCoord(int x, int y) {
         return ((x >= 0 && x < getHeight()) && (y >= 0 && y < getWidth()));
     }
@@ -122,12 +125,58 @@ public class Simulation {
         System.out.printf("Wind: %s\n", this.wind);
     }
 
+    /**
+     * display the tree height map
+     */
     public void printHeightMap() {
-        //
+        char[][] map = new char[getHeight()+2][getWidth()+2];
+        // draw borders
+        drawMapBorder(map);
+
+        // draw the height map for the terrain
+        for (int y = 1; y < getHeight()+1; y++)
+            for (int x = 1; x < getWidth()+1; x++)
+                map[y][x] = trees[y-1][x-1].getPrintableHeight();
+
+        // display the map
+        for ( char[] c : map )
+            System.out.printf("%s\n",String.valueOf(c));
+
+        System.out.printf("\n");
     }
 
+    /**
+     * display the fire intensity map
+     */
     public void printFireMap() {
-        //
+        char[][] map = new char[getHeight()+2][getWidth()+2];
+        // draw borders
+        drawMapBorder(map);
+
+        // draw the intensity map for the terrain
+        for (int y = 1; y < getHeight()+1; y++)
+            for (int x = 1; x < getWidth()+1; x++)
+                map[y][x] = trees[y-1][x-1].getPrintableIntensity();
+
+        // display the map
+        for ( char[] c : map )
+            System.out.printf("%s\n",String.valueOf(c));
+
+        System.out.printf("\n");
+    }
+
+    /**
+     * draw the border for the terrain map
+     * @param map
+     */
+    private void drawMapBorder(char[][] map) {
+        for (int y = 0; y < getHeight()+2; y++)
+            for (int x = 0; x < getWidth()+2; x++)
+                if (y == 0 || y == (getHeight()+2)-1)
+                    map[y][x] = (x == 0 || x == (getWidth()+2)-1) ? '+' : '-';
+                else
+                    if (x == 0 || x == (getWidth()+2)-1)
+                        map[y][x] = '|';
     }
 
     /**
