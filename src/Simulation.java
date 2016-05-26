@@ -97,6 +97,7 @@ public class Simulation {
     public void printData() {
         System.out.printf("Damage: %.2f\\%\n", this.damage);
         System.out.printf("Pollution: %d\n", this.pollution);
+        //test
     }
 
     /**
