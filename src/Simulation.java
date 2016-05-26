@@ -155,7 +155,8 @@ public class Simulation {
         boolean blazing = false;
         // build a co-ordinate list
         for (Point p : buildCoordList(region[0], region[1], region[2], region[3]))
-            blazing = setFire(p);
+            if (setFire(p))
+                blazing = true;
 
         if (blazing)
             System.out.printf("Started a fire\n");
@@ -172,7 +173,8 @@ public class Simulation {
 
         // build a co-ordinate list
         for (Point p : buildCoordList(region[0], region[1], region[2], region[3]))
-            extinguished = extinguishFire(p);
+            if (extinguishFire(p))
+                extinguished = true;
 
         if (extinguished)
             System.out.printf("Extinguished fires\n");
