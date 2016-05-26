@@ -8,11 +8,8 @@ import java.awt.Point;
 import java.util.*;
 
 public class Simulation {
-
     private int day;
     private String wind;
-    private double damage;
-    private int pollution;
 
     //
     // TODO
@@ -22,21 +19,119 @@ public class Simulation {
     private int height;
     private Tree[][] trees;
 
+    private List<Integer[][]> treeData;
+    private List<Integer[][]> fireData;
+    private List<Integer> pollutionData;
+
     /**
      * Create a simulation instance starting from day 1 with no wind
      * @param width
      * @param height
      */
     public Simulation(int width, int height, int seed) {
-        this.width = width;
+        this.width  = width;
         this.height = height;
-        // first day and no wind
-        this.day = 1;
-        this.wind = "none";
+        this.wind   = "none";
+        this.day    = 1;
+        this.trees  = new Tree[height][width];
 
-        this.trees = new Tree[height][width];
         generateTerrain(seed);
-        // TODO
+        // print the status
+        printStatus();
+    }
+
+    /**
+     * values for data as follows:
+     *     0 = no tree or tree burnt down (both are equivalent)
+     *   1-9 = tree exists and has a height
+     */
+    private void generateDailyTreeData() {
+        Integer[][] data = new Integer[getHeight()][getWidth()];
+
+        for (int y = 0; y < getHeight(); y++) {
+            for (int x = 0; x < getWidth(); x++) {
+                data[y][x] = trees[y][x].isBurntDown() ? -1 : trees[y][x].getHeight();
+            }
+        }
+    }
+
+    /**
+     * values for data as follows:
+     *    -1 = no tree or tree burnt down (both are equivalent)
+     *     0 = no fire
+     *   1-9 = fire
+     */
+     private void generateDailyFireData() {
+        Integer[][] data = new Integer[getHeight()][getWidth()];
+
+        if (getDay() == 1) {
+            for (int y = 0; y < getHeight(); y++)
+                for (int x = 0; x < getWidth(); x++)
+                    data[y][x] = (trees[y][x].getHeight() > 0) ? 0 : -1;
+
+            fireData.add(data);
+            return;
+        }
+    }
+
+    private Integer[][] getFireData() {
+        return getFireData(getDay());
+    }
+
+    private Integer[][] getFireData(int day) {
+        if (getDay() == 1) {
+            generateDailyFireData();
+            return this.fireData.get(0);
+        }
+
+        return this.fireData.get(getDay()-2);
+    }
+
+    private void generateDailyPollutionData() {
+        // if its the first day, then its 0 otherwise its yesterdays
+        int prev  = getDay() == 1 ? 0 : getPollutionData( getDay() - 1);
+        int today = 0;
+
+        for (int y = 0; y < getHeight(); y++)
+            for (int x = 0; x < getWidth(); x++)
+                today += trees[y][x].getPollution();
+
+        pollutionData.add( (today-prev < 0) ? 0 : today-prev);
+    }
+
+    private double getDamageData() {
+        int totalTrees = 0;
+        int totalBurnt = 0;
+
+        for (int y = 0; y < getHeight(); y++) {
+            for (int x = 0; x < getWidth(); x++) {
+                if (trees[y][x].getHeight() > 0 || trees[y][x].isBurntDown()) {
+                    // is a tree or was a tree
+                    totalTrees += 1;
+                    if (trees[y][x].isBurntDown())
+                        totalBurnt += 1;
+                }
+            }
+        }
+
+        return ((double)totalBurnt / (double)totalTrees) * 100.0;
+    }
+
+    /**
+     * override to get the previous days data or 0 if first day
+     * @return
+     */
+    private int getPollutionData() {
+        return (getDay() == 1) ? 0 : getPollutionData(getDay()-1);
+    }
+
+    /**
+     * get the days pollution data
+     * @param day day number
+     * @return pollution data from yesterday
+     */
+    private int getPollutionData(int day) {
+        return this.pollutionData.get(day-1);
     }
 
     /**
@@ -58,9 +153,9 @@ public class Simulation {
      */
     public void fire(int[] region) {
         boolean blazing = false;
-
-        Point p0 = new Point( region[0], region[1] );
-        Point p1 = new Point( region[2], region[3] );
+        // build a co-ordinate list
+        for (Point p : buildCoordList(region[0], region[1], region[2], region[3]))
+            blazing = setFire(p);
 
         if (blazing)
             System.out.printf("Started a fire\n");
@@ -75,8 +170,9 @@ public class Simulation {
     public void extinguish(int[] region) {
         boolean extinguished = false;
 
-        Point p0 = new Point( region[0], region[1] );
-        Point p1 = new Point( region[2], region[3] );
+        // build a co-ordinate list
+        for (Point p : buildCoordList(region[0], region[1], region[2], region[3]))
+            extinguished = extinguishFire(p);
 
         if (extinguished)
             System.out.printf("Extinguished fires\n");
@@ -85,8 +181,52 @@ public class Simulation {
     }
 
     /**
+     * start fire at Point x,y
+     * @param p
+     * @return
+     */
+    private boolean setFire(Point p) {
+        int x = (int)p.getX();
+        int y = (int)p.getY();
+
+        // will i be lazy ??
+        if (!isValidCoord(x,y))
+            return false;
+
+        // set the tree ablaze!
+        if (trees[y][x].getHeight() > 0 && trees[y][x].getIntensity() == 0) {
+            trees[y][x].setIntensity(1);
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * put out fire at Point x,y
+     * @param p
+     * @return
+     */
+    private boolean extinguishFire(Point p) {
+        int x = (int)p.getX();
+        int y = (int)p.getY();
+
+        // will i be lazy ??
+        if (!isValidCoord(x,y))
+            return false;
+
+        // set the tree ablaze!
+        if (trees[y][x].getHeight() > 0 && trees[y][x].getIntensity() > 0) {
+            trees[y][x].setIntensity(0);
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
      * sets the current wind direction
-     * accepts: north, south, east, west, all
+     * accepts: north, south, east, west, all, none
      * @param direction
      */
     public void setWindDirection(String direction) {
@@ -94,12 +234,28 @@ public class Simulation {
         System.out.printf("Set wind to %s\n", this.wind);
     }
 
+    /**
+     * get the terrain width
+     * @return
+     */
     public int getWidth() {
         return this.width;
     }
 
+    /**
+     * get the terrain height
+     * @return
+     */
     public int getHeight() {
         return this.height;
+    }
+
+    /**
+     * get the current day
+     * @return
+     */
+    public int getDay() {
+        return this.day;
     }
 
     /**
@@ -113,8 +269,10 @@ public class Simulation {
      * prints the current damage and pollution data
      */
     public void printData() {
-        System.out.printf("Damage: %.2f\\%\n", this.damage);
-        System.out.printf("Pollution: %d\n", this.pollution);
+        double damage = getDamageData();
+        // possible rounding errors?
+        System.out.printf("Damage: %.2f\\%\n", damage > 100.0 ? 100.0 : damage);
+        System.out.printf("Pollution: %d\n", getPollutionData());
     }
 
     /**
@@ -123,6 +281,20 @@ public class Simulation {
     public void printStatus() {
         System.out.printf("Day: %d\n", this.day);
         System.out.printf("Wind: %s\n", this.wind);
+    }
+
+    /**
+     * draw the border for the terrain map
+     * @param map
+     */
+    private void drawMapBorder(char[][] map) {
+        for (int y = 0; y < getHeight()+2; y++)
+            for (int x = 0; x < getWidth()+2; x++)
+                if (y == 0 || y == (getHeight()+2)-1)
+                    map[y][x] = (x == 0 || x == (getWidth()+2)-1) ? '+' : '-';
+                else
+                if (x == 0 || x == (getWidth()+2)-1)
+                    map[y][x] = '|';
     }
 
     /**
@@ -166,17 +338,31 @@ public class Simulation {
     }
 
     /**
-     * draw the border for the terrain map
-     * @param map
+     * build a list of points from a single point
+     * @param x
+     * @param y
+     * @return
      */
-    private void drawMapBorder(char[][] map) {
-        for (int y = 0; y < getHeight()+2; y++)
-            for (int x = 0; x < getWidth()+2; x++)
-                if (y == 0 || y == (getHeight()+2)-1)
-                    map[y][x] = (x == 0 || x == (getWidth()+2)-1) ? '+' : '-';
-                else
-                    if (x == 0 || x == (getWidth()+2)-1)
-                        map[y][x] = '|';
+    public static List<Point> buildCoordList(int x, int y) {
+        return buildCoordList(x, y, x, y);
+    }
+
+    /**
+     * build a list of points from a region
+     * @param x0
+     * @param y0
+     * @param x1
+     * @param y1
+     * @return
+     */
+    public static List<Point> buildCoordList(int x0, int y0, int x1, int y1) {
+        List<Point> lp = new ArrayList<>();
+
+        for (int y = y0; y <= y1; y++)
+            for (int x = x0; x <= x1; x++)
+                lp.add(new Point(x,y));
+
+        return lp;
     }
 
     /**
