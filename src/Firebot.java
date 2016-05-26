@@ -8,17 +8,13 @@ import java.util.Scanner;
 import java.util.*;
 
 public class Firebot {
-    //
-    // TODO
-    //
-    public static int width = 0;
-    public static int height = 0;
-
     private static Scanner scan;
     private static Simulation sim;
 
     public static void main(String[] args) {
-         int seed = -1;
+        int seed = -1;
+        int width = 0;
+        int height = 0;
 
         try {
             if (args.length != 3)
@@ -95,7 +91,7 @@ public class Firebot {
                     out.add(cmd);
                     out.add(String.valueOf(0));
                     out.add(String.valueOf(0));
-                    out.add(String.valueOf(width-1));
+                    out.add(String.valueOf(sim.getWidth()-1));
                     out.add(String.valueOf(sim.getHeight()-1));
 
                 } else if (tmp.length == 3 || tmp.length == 5) {
@@ -249,9 +245,11 @@ public class Firebot {
         List<String> res = new ArrayList<>();
         getCmdFromCmdString(command, res);
 
-        System.out.printf("Result: %s\n", res.get(0));
-
         return res;
+    }
+
+    public static void testSetupSimulation(int width, int height) {
+        sim = new Simulation(width, height, 0);
     }
 
     public static void help() {
