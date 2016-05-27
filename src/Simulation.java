@@ -11,16 +11,12 @@ public class Simulation {
     private int day;
     private String wind;
 
-    //
-    // TODO
-    //
-
     private int width;
     private int height;
     private Tree[][] trees;
 
-    private List<Integer[][]> treeData;
-    private List<Integer[][]> fireData;
+//    private List<Integer[][]> treeData;
+//    private List<Integer[][]> fireData;
     private List<Integer> pollutionData;
 
     /**
@@ -34,6 +30,7 @@ public class Simulation {
         this.wind   = "none";
         this.day    = 1;
         this.trees  = new Tree[height][width];
+        this.pollutionData = new ArrayList<>();
 
         generateTerrain(seed);
         // print the status
@@ -45,15 +42,15 @@ public class Simulation {
      *     0 = no tree or tree burnt down (both are equivalent)
      *   1-9 = tree exists and has a height
      */
-    private void generateDailyTreeData() {
-        Integer[][] data = new Integer[getHeight()][getWidth()];
-
-        for (int y = 0; y < getHeight(); y++) {
-            for (int x = 0; x < getWidth(); x++) {
-                data[y][x] = trees[y][x].isBurntDown() ? -1 : trees[y][x].getHeight();
-            }
-        }
-    }
+//    private void generateDailyTreeData() {
+//        Integer[][] data = new Integer[getHeight()][getWidth()];
+//
+//        for (int y = 0; y < getHeight(); y++) {
+//            for (int x = 0; x < getWidth(); x++) {
+//                data[y][x] = trees[y][x].isBurntDown() ? -1 : trees[y][x].getHeight();
+//            }
+//        }
+//    }
 
     /**
      * values for data as follows:
@@ -61,31 +58,31 @@ public class Simulation {
      *     0 = no fire
      *   1-9 = fire
      */
-     private void generateDailyFireData() {
-        Integer[][] data = new Integer[getHeight()][getWidth()];
-
-        if (getDay() == 1) {
-            for (int y = 0; y < getHeight(); y++)
-                for (int x = 0; x < getWidth(); x++)
-                    data[y][x] = (trees[y][x].getHeight() > 0) ? 0 : -1;
-
-            fireData.add(data);
-            return;
-        }
-    }
-
-    private Integer[][] getFireData() {
-        return getFireData(getDay());
-    }
-
-    private Integer[][] getFireData(int day) {
-        if (getDay() == 1) {
-            generateDailyFireData();
-            return this.fireData.get(0);
-        }
-
-        return this.fireData.get(getDay()-2);
-    }
+//     private void generateDailyFireData() {
+//        Integer[][] data = new Integer[getHeight()][getWidth()];
+//
+//        if (getDay() == 1) {
+//            for (int y = 0; y < getHeight(); y++)
+//                for (int x = 0; x < getWidth(); x++)
+//                    data[y][x] = (trees[y][x].getHeight() > 0) ? 0 : -1;
+//
+//            fireData.add(data);
+//            return;
+//        }
+//    }
+//
+//    private Integer[][] getFireData() {
+//        return getFireData(getDay());
+//    }
+//
+//    private Integer[][] getFireData(int day) {
+//        if (getDay() == 1) {
+//            generateDailyFireData();
+//            return this.fireData.get(0);
+//        }
+//
+//        return this.fireData.get(getDay()-2);
+//    }
 
     private void generateDailyPollutionData() {
         // if its the first day, then its 0 otherwise its yesterdays
@@ -96,7 +93,7 @@ public class Simulation {
             for (int x = 0; x < getWidth(); x++)
                 today += trees[y][x].getPollution();
 
-        pollutionData.add( (today-prev < 0) ? 0 : today-prev);
+        pollutionData.add( (prev+today < 0) ? 0 : today+prev);
     }
 
     private double getDamageData() {
@@ -140,12 +137,97 @@ public class Simulation {
      */
     public void next(int days) {
         // TODO
+        List<Point> burning = getBurningTreeCoordList();
 
+        // first we do the burning of any burning trees
+        for ( Point p : burning )
+            trees[(int) p.getY()][(int) p.getX()].tryBurn();
+
+        // now we spread the fire
+        switch(getWindDirection()) {
+            case "none":
+                break;
+
+            default:
+                String wind = getWindDirection();
+
+                for (Point p : burning) {
+                    int x = (int) p.getX();
+                    int y = (int) p.getY();
+
+                    if (wind.equals("north") || wind.equals("all")) {
+                        int dx = x;
+                        int dy = y - 1;
+
+                        if (isValidCoord(dx, dy) &&
+                                trees[dy][dx].getIntensity() == 0 &&
+                                trees[dy][dx].getHeight() > 0) {
+                            trees[dy][dx].setIntensity(1);
+                        }
+                    }
+
+                    if (wind.equals("south") || wind.equals("all")) {
+                        int dx = x;
+                        int dy = y + 1;
+
+                        if (isValidCoord(dx, dy) &&
+                                trees[dy][dx].getIntensity() == 0 &&
+                                trees[dy][dx].getHeight() > 0) {
+                            trees[dy][dx].setIntensity(1);
+                        }
+                    }
+
+                    if (wind.equals("east") || wind.equals("all")) {
+                        int dx = x + 1;
+                        int dy = y;
+
+                        if (isValidCoord(dx, dy) &&
+                                trees[dy][dx].getIntensity() == 0 &&
+                                trees[dy][dx].getHeight() > 0) {
+                            trees[dy][dx].setIntensity(1);
+                        }
+                    }
+
+                    if (wind.equals("west") || wind.equals("all")) {
+                        int dx = x - 1;
+                        int dy = y;
+
+                        if (isValidCoord(dx, dy) &&
+                                trees[dy][dx].getIntensity() == 0 &&
+                                trees[dy][dx].getHeight() > 0) {
+                            trees[dy][dx].setIntensity(1);
+                        }
+                    }
+                }
+
+                break;
+        }
+
+        // calculate the days pollution
+        generateDailyPollutionData();
+
+        // recursive call
         if (days > 1)
             next(days - 1);
         else
             printStatus();
     }
+
+    /**
+     * get coords of all burning trees
+     * @return
+     */
+    private List<Point> getBurningTreeCoordList() {
+        List<Point> lp = new ArrayList<>();
+
+        for (int y = 0; y < getHeight(); y++)
+            for (int x = 0; x < getWidth(); x++)
+                if (trees[y][x].getIntensity() > 0)
+                    lp.add(new Point(x, y));
+
+        return lp;
+    }
+
 
     /**
      * starts a fire from region[1],region[0] and to region[3],region[2] if included
@@ -234,6 +316,10 @@ public class Simulation {
     public void setWindDirection(String direction) {
         this.wind = direction;
         System.out.printf("Set wind to %s\n", this.wind);
+    }
+
+    public String getWindDirection() {
+        return this.wind;
     }
 
     /**
