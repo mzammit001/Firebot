@@ -43,6 +43,7 @@ public class Firebot {
     public static void getCmdFromCmdString(String command, List<String> out) {
         String[] tmp = command.toLowerCase().split("\\s");
         String cmd = tmp[0];
+        out.add(String.valueOf(false));
 
         switch(cmd) {
             case "bye":
@@ -50,13 +51,12 @@ public class Firebot {
             case "data":
             case "status":
                 if (tmp.length > 1) {
-                    out.add(String.valueOf(false));
                     return;
                 }
-                out.add(String.valueOf(true));
+                out.set(0, String.valueOf(true));
                 out.add(cmd);
-                break;
 
+                break;
             case "next":
                 try {
                     if (tmp.length > 2) {
@@ -64,13 +64,13 @@ public class Firebot {
                     }
 
                     if (tmp.length == 1) {
-                        out.add(String.valueOf(true));
+                        out.set(0, String.valueOf(true));
                         out.add(cmd);
                         out.add(String.valueOf(1));
                     } else {
                         int i = Integer.parseInt(tmp[1]);
                         if ( i >= 1 ) {
-                            out.add(String.valueOf(true));
+                            out.set(0, String.valueOf(true));
                             out.add(cmd);
                             out.add(tmp[1]);
                         } else {
@@ -78,16 +78,14 @@ public class Firebot {
                         }
                     }
                 } catch (NumberFormatException e) {
-                    out.add(String.valueOf(false));
                     return;
                 }
 
                 break;
-
             case "fire":
             case "extinguish":
                 if (tmp.length == 2 && tmp[1].equals("all")) {
-                    out.add(String.valueOf(true));
+                    out.set(0, String.valueOf(true));
                     out.add(cmd);
                     out.add(String.valueOf(0));
                     out.add(String.valueOf(0));
@@ -102,7 +100,7 @@ public class Firebot {
                         if (! sim.isValidCoord(x0, y0))
                             throw new NumberFormatException();
 
-                        out.add(String.valueOf(true));
+                        out.set(0, String.valueOf(true));
                         out.add(cmd);
                         out.add(tmp[1]);
                         out.add(tmp[2]);
@@ -124,39 +122,33 @@ public class Firebot {
                         out.add(String.valueOf(false));
                         return;
                     }
-
                 } else {
-                    out.add(String.valueOf(false));
                     return;
                 }
-                break;
 
+                break;
             case "wind":
                 if (tmp.length != 2 ||
                         ! Arrays.asList(new String[]{"east", "west", "north", "south", "all", "none"})
                                 .contains(tmp[1])) {
-                    out.add(String.valueOf(false));
                     return;
                 }
 
-                out.add(String.valueOf(true));
+                out.set(0, String.valueOf(true));
                 out.add(cmd);
                 out.add(tmp[1]);
                 break;
-
             case "show":
                 if (tmp.length == 2 && (tmp[1].equals("fire") || tmp[1].equals("height"))) {
-                    out.add(String.valueOf(true));
+                    out.set(0, String.valueOf(true));
                     out.add(cmd);
                     out.add(tmp[1]);
                 } else {
-                    out.add(String.valueOf(false));
                     return;
                 }
-                break;
 
+                break;
             default:
-                out.add(String.valueOf(false));
                 return;
         }
 
