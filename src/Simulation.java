@@ -206,6 +206,8 @@ public class Simulation {
         // calculate the days pollution
         generateDailyPollutionData();
 
+        this.day++;
+
         // recursive call
         if (days > 1)
             next(days - 1);
@@ -228,7 +230,6 @@ public class Simulation {
         return lp;
     }
 
-
     /**
      * starts a fire from region[1],region[0] and to region[3],region[2] if included
      * @param region
@@ -244,6 +245,7 @@ public class Simulation {
             System.out.printf("Started a fire\n");
         else
             System.out.printf("No fires were started\n");
+
     }
 
     /**
@@ -262,6 +264,7 @@ public class Simulation {
             System.out.printf("Extinguished fires\n");
         else
             System.out.printf("No fires to extinguish\n");
+
     }
 
     /**
@@ -350,7 +353,7 @@ public class Simulation {
      * check that the coordinate is within the bounds of the terrain
      */
     public boolean isValidCoord(int x, int y) {
-        return ((x >= 0 && x < getHeight()) && (y >= 0 && y < getWidth()));
+        return ((x >= 0 && x < getWidth()) && (y >= 0 && y < getHeight()));
     }
 
     /**
@@ -359,7 +362,7 @@ public class Simulation {
     public void printData() {
         double damage = getDamageData();
         // possible rounding errors?
-        System.out.printf("Damage: %.2f\\%\n", damage > 100.0 ? 100.0 : damage);
+        System.out.printf("Damage: %.2f%%\n", (int)damage == 100 ? 100.0 : damage);
         System.out.printf("Pollution: %d\n", getPollutionData());
     }
 
@@ -376,53 +379,61 @@ public class Simulation {
      * @param map
      */
     private void drawMapBorder(char[][] map) {
+        int w = getWidth() * 2 - 1;
         for (int y = 0; y < getHeight()+2; y++)
-            for (int x = 0; x < getWidth()+2; x++)
-                if (y == 0 || y == (getHeight()+2)-1)
-                    map[y][x] = (x == 0 || x == (getWidth()+2)-1) ? '+' : '-';
+            for (int x = 0; x < w+2; x++)
+                if (y == 0 || y == (getHeight()+2)-1) {
+                    map[y][x] = (x == 0 || x == (w + 2) - 1) ? '+' : '-';
+                }
                 else
-                if (x == 0 || x == (getWidth()+2)-1)
-                    map[y][x] = '|';
+                    if (x == 0 || x == (w+2)-1)
+                        map[y][x] = '|';
     }
 
     /**
      * display the tree height map
      */
     public void printHeightMap() {
-        char[][] map = new char[getHeight()+2][getWidth()+2];
+        int w = getWidth()*2 - 1;
+        char[][] map = new char[getHeight()+2][w+2];
         // draw borders
         drawMapBorder(map);
 
+        for (int y = 1; y < getHeight()+1; y++)
+            for (int x = 1; x < w+1; x++)
+                map[y][x] = ' ';
+
         // draw the height map for the terrain
         for (int y = 1; y < getHeight()+1; y++)
-            for (int x = 1; x < getWidth()+1; x++)
-                map[y][x] = trees[y-1][x-1].getPrintableHeight();
+            for (int x = 1; x < w+1; x+=2)
+                map[y][x] = trees[y-1][x/2].getPrintableHeight();
 
         // display the map
         for ( char[] c : map )
             System.out.printf("%s\n",String.valueOf(c));
-
-        System.out.printf("\n");
     }
 
     /**
      * display the fire intensity map
      */
     public void printFireMap() {
-        char[][] map = new char[getHeight()+2][getWidth()+2];
+        int w = getWidth()*2 - 1;
+        char[][] map = new char[getHeight()+2][w+2];
         // draw borders
         drawMapBorder(map);
 
-        // draw the intensity map for the terrain
         for (int y = 1; y < getHeight()+1; y++)
-            for (int x = 1; x < getWidth()+1; x++)
-                map[y][x] = trees[y-1][x-1].getPrintableIntensity();
+            for (int x = 1; x < w+1; x++)
+                map[y][x] = ' ';
+
+        // draw the height map for the terrain
+        for (int y = 1; y < getHeight()+1; y++)
+            for (int x = 1; x < w+1; x+=2)
+                map[y][x] = trees[y-1][x/2].getPrintableIntensity();
 
         // display the map
         for ( char[] c : map )
             System.out.printf("%s\n",String.valueOf(c));
-
-        System.out.printf("\n");
     }
 
     /**
