@@ -14,9 +14,6 @@ public class Simulation {
     private int width;
     private int height;
     private Tree[][] trees;
-
-//    private List<Integer[][]> treeData;
-//    private List<Integer[][]> fireData;
     private List<Integer> pollutionData;
 
     /**
@@ -36,53 +33,6 @@ public class Simulation {
         // print the status
         printStatus();
     }
-
-    /**
-     * values for data as follows:
-     *     0 = no tree or tree burnt down (both are equivalent)
-     *   1-9 = tree exists and has a height
-     */
-//    private void generateDailyTreeData() {
-//        Integer[][] data = new Integer[getHeight()][getWidth()];
-//
-//        for (int y = 0; y < getHeight(); y++) {
-//            for (int x = 0; x < getWidth(); x++) {
-//                data[y][x] = trees[y][x].isBurntDown() ? -1 : trees[y][x].getHeight();
-//            }
-//        }
-//    }
-
-    /**
-     * values for data as follows:
-     *    -1 = no tree or tree burnt down (both are equivalent)
-     *     0 = no fire
-     *   1-9 = fire
-     */
-//     private void generateDailyFireData() {
-//        Integer[][] data = new Integer[getHeight()][getWidth()];
-//
-//        if (getDay() == 1) {
-//            for (int y = 0; y < getHeight(); y++)
-//                for (int x = 0; x < getWidth(); x++)
-//                    data[y][x] = (trees[y][x].getHeight() > 0) ? 0 : -1;
-//
-//            fireData.add(data);
-//            return;
-//        }
-//    }
-//
-//    private Integer[][] getFireData() {
-//        return getFireData(getDay());
-//    }
-//
-//    private Integer[][] getFireData(int day) {
-//        if (getDay() == 1) {
-//            generateDailyFireData();
-//            return this.fireData.get(0);
-//        }
-//
-//        return this.fireData.get(getDay()-2);
-//    }
 
     private void generateDailyPollutionData() {
         // if its the first day, then its 0 otherwise its yesterdays
@@ -302,7 +252,7 @@ public class Simulation {
         if (!isValidCoord(x,y))
             return false;
 
-        // set the tree ablaze!
+        // douse the fire, no more blazin
         if (trees[y][x].getHeight() > 0 && trees[y][x].getIntensity() > 0) {
             trees[y][x].setIntensity(0);
             return true;
@@ -386,8 +336,8 @@ public class Simulation {
                     map[y][x] = (x == 0 || x == (w + 2) - 1) ? '+' : '-';
                 }
                 else
-                    if (x == 0 || x == (w+2)-1)
-                        map[y][x] = '|';
+                if (x == 0 || x == (w+2)-1)
+                    map[y][x] = '|';
     }
 
     /**
