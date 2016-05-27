@@ -164,9 +164,12 @@ public class Firebot {
     }
 
     public static void readInputLoop() {
+        System.out.print("\n> ");
+
         while (scan.hasNextLine()) {
             String line = scan.nextLine();
             runCommand(line);
+            System.out.print("\n> ");
         }
     }
 
