@@ -4,17 +4,15 @@
  * <your unikey>
  */
 
-import java.util.Scanner;
 import java.util.*;
+import java.util.stream.*;
 
-public class Firebot {
+public class Firebot{
     private static Scanner scan;
     private static Simulation sim;
 
     public static void main(String[] args) {
-        int seed = -1;
-        int width = 0;
-        int height = 0;
+        int seed = 0, width = 0, height = 0;
 
         try {
             if (args.length != 3)
@@ -24,7 +22,7 @@ public class Firebot {
             width = Integer.parseInt(args[1]);
             height = Integer.parseInt(args[2]);
 
-            if (seed < 0 || width < 1 || height < 1)
+            if (seed <= 0 || width < 1 || height < 1)
                 throw new NumberFormatException();
 
         } catch (NumberFormatException e) {
@@ -50,26 +48,24 @@ public class Firebot {
             case "help":
             case "data":
             case "status":
-                if (tmp.length > 1) {
+                if (tmp.length > 1)
                     return;
-                }
+
                 out.set(0, String.valueOf(true));
                 out.add(cmd);
-
                 break;
+
             case "next":
                 try {
-                    if (tmp.length > 2) {
+                    if (tmp.length > 2)
                         throw new NumberFormatException();
-                    }
 
                     if (tmp.length == 1) {
                         out.set(0, String.valueOf(true));
                         out.add(cmd);
                         out.add(String.valueOf(1));
                     } else {
-                        int i = Integer.parseInt(tmp[1]);
-                        if ( i >= 1 ) {
+                        if ( Integer.parseInt(tmp[1]) >= 1 ) {
                             out.set(0, String.valueOf(true));
                             out.add(cmd);
                             out.add(tmp[1]);
@@ -102,10 +98,8 @@ public class Firebot {
 
                         out.set(0, String.valueOf(true));
                         out.add(cmd);
-                        out.add(tmp[1]);
-                        out.add(tmp[2]);
-                        out.add(tmp[1]);
-                        out.add(tmp[2]);
+                        out.add(tmp[1]); out.add(tmp[2]);
+                        out.add(tmp[1]); out.add(tmp[2]);
 
                         if (tmp.length == 5) {
                             int x1 = x0 + Integer.parseInt(tmp[3]) - 1;
@@ -122,8 +116,6 @@ public class Firebot {
                         out.add(String.valueOf(false));
                         return;
                     }
-                } else {
-                    return;
                 }
 
                 break;
@@ -133,23 +125,19 @@ public class Firebot {
                                 .contains(tmp[1])) {
                     return;
                 }
-
                 out.set(0, String.valueOf(true));
                 out.add(cmd);
                 out.add(tmp[1]);
+
                 break;
             case "show":
                 if (tmp.length == 2 && (tmp[1].equals("fire") || tmp[1].equals("height"))) {
                     out.set(0, String.valueOf(true));
                     out.add(cmd);
                     out.add(tmp[1]);
-                } else {
-                    return;
                 }
-
-                break;
             default:
-                return;
+                break;
         }
 
         return;
@@ -169,9 +157,7 @@ public class Firebot {
         List<String> res = new ArrayList<>();
         getCmdFromCmdString(command, res);
 
-        boolean result = Boolean.valueOf(res.get(0));
-
-        if (! result) {
+        if (! Boolean.valueOf(res.get(0)) ) {
             System.out.printf("Invalid command\n");
             return;
         }
@@ -180,52 +166,35 @@ public class Firebot {
         String[] args = new String[res.size()-2];
 
         if (args.length > 0)
-            for (int i = 0; i < args.length; i++)
-                args[i] = res.get(i+2);
+            res.subList(2, res.size()).toArray(args);
 
         switch(cmd) {
-            case "bye":
-                bye();
-            case "help":
-                help();
-                break;
-            case "data":
-                sim.printData();
-                break;
-            case "status":
-                sim.printStatus();
-                break;
-            case "next":
-                sim.next(Integer.parseInt(args[0]));
-                break;
+            case "bye"   : bye();
+            case "help"  : help(); break;
+            case "data"  : sim.printData(); break;
+            case "status": sim.printStatus(); break;
+            case "next"  : sim.next(Integer.parseInt(args[0])); break;
+            case "wind"  : sim.setWindDirection(args[0]); break;
+
             case "show":
                 switch (args[0]) {
-                    case "height":
-                        sim.printHeightMap();
-                        break;
-                    case "fire":
-                        sim.printFireMap();
-                        break;
-                    default:
-                        System.out.printf("Reached the unreachable for show\n");
-                        System.exit(1);
+                    case "height": sim.printHeightMap(); break;
+                    case "fire"  : sim.printFireMap(); break;
                 }
                 break;
+
             case "fire":
-                sim.fire(new int[]{ Integer.parseInt(args[0]),
-                                    Integer.parseInt(args[1]),
-                                    Integer.parseInt(args[2]),
-                                    Integer.parseInt(args[3]) });
+                sim.fire(new int[]{
+                        Integer.parseInt(args[0]), Integer.parseInt(args[1]),
+                        Integer.parseInt(args[2]), Integer.parseInt(args[3]) });
                 break;
-            case "wind":
-                sim.setWindDirection(args[0]);
-                break;
+
             case "extinguish":
-                sim.extinguish(new int[]{ Integer.parseInt(args[0]),
-                                          Integer.parseInt(args[1]),
-                                          Integer.parseInt(args[2]),
-                                          Integer.parseInt(args[3]) });
+                sim.extinguish(new int[]{
+                        Integer.parseInt(args[0]), Integer.parseInt(args[1]),
+                        Integer.parseInt(args[2]), Integer.parseInt(args[3]) });
                 break;
+
             default:
                 System.out.printf("Reached the unreachable for command\n");
                 System.exit(1);

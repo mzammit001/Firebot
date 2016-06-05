@@ -6,16 +6,43 @@
 
 import java.awt.Point;
 import java.util.*;
+import java.nio.*;
+
+enum Wind {
+    NONE(0,"none"), NORTH(1,"north"), SOUTH(2,"south"), EAST(4,"east"), WEST(8,"west"), ALL(1|2|4|8,"all");
+    private final int id;
+    private final String strid;
+    private static Map<String,String> stow;
+
+    Wind(final int id, final String strid) {
+        this.id = id; this.strid = strid;
+        addToTable(strid, strid.toUpperCase());
+        addToTable(String.valueOf(id), strid.toUpperCase());
+    }
+
+    private void addToTable(String s1, String s2) {
+        if (Wind.stow == null)
+            Wind.stow = new HashMap<>();
+
+        Wind.stow.put(s1,s2);
+    }
+    public static Wind mapFrom(String s) { return Wind.valueOf( Wind.stow.getOrDefault(s.toLowerCase(),"none") ); }
+
+    @Override
+    public String toString() { return this.strid; }
+    public int id() { return this.id; }
+    public static Wind[] directions() { return new Wind[]{ Wind.NORTH, Wind.SOUTH, Wind.EAST, Wind.WEST }; }
+    public boolean contains(Wind component) { return (this.id() & component.id()) == component.id(); }
+}
 
 public class Simulation {
     private int day;
-    private String wind;
+    private Wind wind = Wind.NONE;
 
     private int width;
     private int height;
     private Tree[][] trees;
     private List<Integer> pollutionData;
-
     /**
      * Create a simulation instance starting from day 1 with no wind
      * @param width
@@ -24,7 +51,6 @@ public class Simulation {
     public Simulation(int width, int height, int seed) {
         this.width  = width;
         this.height = height;
-        this.wind   = "none";
         this.day    = 1;
         this.trees  = new Tree[height][width];
         this.pollutionData = new ArrayList<>();
@@ -34,6 +60,9 @@ public class Simulation {
         printStatus();
     }
 
+    /**
+     * generate daily pollution stats
+     */
     private void generateDailyPollutionData() {
         // if its the first day, then its 0 otherwise its yesterdays
         int prev  = getDay() == 1 ? 0 : getPollutionData( getDay() - 1);
@@ -66,7 +95,7 @@ public class Simulation {
 
     /**
      * override to get the previous days data or 0 if first day
-     * @return
+     * @return int
      */
     private int getPollutionData() {
         return (getDay() == 1) ? 0 : getPollutionData(getDay()-1);
@@ -83,86 +112,50 @@ public class Simulation {
 
     /**
      * recursive next day function
-     * @param days
+     * @param days days to simulate
      */
     public void next(int days) {
-        // TODO
         List<Point> burning = getBurningTreeCoordList();
 
         // first we do the burning of any burning trees
         for ( Point p : burning )
-            trees[(int) p.getY()][(int) p.getX()].tryBurn();
+            trees[p.y][p.x].tryBurn();
 
-        // now we spread the fire
-        switch(getWindDirection()) {
-            case "none":
-                break;
-
-            default:
-                String wind = getWindDirection();
-
-                for (Point p : burning) {
-                    int x = (int) p.getX();
-                    int y = (int) p.getY();
-
-                    if (wind.equals("north") || wind.equals("all")) {
-                        int dx = x;
-                        int dy = y - 1;
-
-                        if (isValidCoord(dx, dy) &&
-                                trees[dy][dx].getIntensity() == 0 &&
-                                trees[dy][dx].getHeight() > 0) {
-                            trees[dy][dx].setIntensity(1);
-                        }
-                    }
-
-                    if (wind.equals("south") || wind.equals("all")) {
-                        int dx = x;
-                        int dy = y + 1;
-
-                        if (isValidCoord(dx, dy) &&
-                                trees[dy][dx].getIntensity() == 0 &&
-                                trees[dy][dx].getHeight() > 0) {
-                            trees[dy][dx].setIntensity(1);
-                        }
-                    }
-
-                    if (wind.equals("east") || wind.equals("all")) {
-                        int dx = x + 1;
-                        int dy = y;
-
-                        if (isValidCoord(dx, dy) &&
-                                trees[dy][dx].getIntensity() == 0 &&
-                                trees[dy][dx].getHeight() > 0) {
-                            trees[dy][dx].setIntensity(1);
-                        }
-                    }
-
-                    if (wind.equals("west") || wind.equals("all")) {
-                        int dx = x - 1;
-                        int dy = y;
-
-                        if (isValidCoord(dx, dy) &&
-                                trees[dy][dx].getIntensity() == 0 &&
-                                trees[dy][dx].getHeight() > 0) {
-                            trees[dy][dx].setIntensity(1);
-                        }
-                    }
-                }
-
-                break;
-        }
+        // spread the winds
+        if (wind != Wind.NONE)
+            for (Point p : burning)
+                for (Wind w : Wind.directions())
+                    spreadWithWind(p, w);
 
         // calculate the days pollution
         generateDailyPollutionData();
-
-        this.day++;
+        nextDay();
 
         // recursive call
         if (days > 1)
             next(days - 1);
         else
             printStatus();
+    }
+
+    private void spreadWithWind(Point p, Wind component) {
+        if ( ! wind.contains(component) )
+            return;
+
+        Point dp = new Point(p.x,p.y);
+
+        switch(component) {
+            case NORTH: dp.y -= 1; break;
+            case SOUTH: dp.y += 1; break;
+            case EAST: dp.x += 1; break;
+            case WEST: dp.x -= 1; break;
+            default: return;
+        }
+
+        if (isValidCoord(dp) && trees[dp.y][dp.x].getIntensity() == 0
+                             && trees[dp.y][dp.x].getHeight()     > 0) {
+            trees[dp.y][dp.x].setIntensity(1);
+        }
     }
 
     /**
@@ -181,7 +174,7 @@ public class Simulation {
     }
 
     /**
-     * starts a fire from region[1],region[0] and to region[3],region[2] if included
+     * starts a fire from x0, y0 to x1, y1
      * @param region
      */
     public void fire(int[] region) {
@@ -223,16 +216,15 @@ public class Simulation {
      * @return
      */
     private boolean setFire(Point p) {
-        int x = (int)p.getX();
-        int y = (int)p.getY();
-
         // will i be lazy ??
-        if (!isValidCoord(x,y))
+        if (!isValidCoord(p.x,p.y))
             return false;
 
+        Tree t = trees[p.y][p.x];
+
         // set the tree ablaze!
-        if (trees[y][x].getHeight() > 0 && trees[y][x].getIntensity() == 0) {
-            trees[y][x].setIntensity(1);
+        if (t.getHeight() > 0 && t.getIntensity() == 0) {
+            t.setIntensity(1);
             return true;
         }
 
@@ -245,16 +237,15 @@ public class Simulation {
      * @return
      */
     private boolean extinguishFire(Point p) {
-        int x = (int)p.getX();
-        int y = (int)p.getY();
-
         // will i be lazy ??
-        if (!isValidCoord(x,y))
+        if (!isValidCoord(p))
             return false;
 
+        Tree t = trees[p.y][p.x];
+
         // douse the fire, no more blazin
-        if (trees[y][x].getHeight() > 0 && trees[y][x].getIntensity() > 0) {
-            trees[y][x].setIntensity(0);
+        if (t.getHeight() > 0 && t.getIntensity() > 0) {
+            t.setIntensity(0);
             return true;
         }
 
@@ -267,13 +258,11 @@ public class Simulation {
      * @param direction
      */
     public void setWindDirection(String direction) {
-        this.wind = direction;
-        System.out.printf("Set wind to %s\n", this.wind);
+        this.wind = Wind.mapFrom(direction);
+        System.out.printf("Set wind to %s\n", this.wind.toString());
     }
 
-    public String getWindDirection() {
-        return this.wind;
-    }
+    public String getWindDirection() {  return this.wind.toString(); }
 
     /**
      * get the terrain width
@@ -298,6 +287,7 @@ public class Simulation {
     public int getDay() {
         return this.day;
     }
+    private void nextDay() { this.day++; }
 
     /**
      * check that the coordinate is within the bounds of the terrain
@@ -305,6 +295,7 @@ public class Simulation {
     public boolean isValidCoord(int x, int y) {
         return ((x >= 0 && x < getWidth()) && (y >= 0 && y < getHeight()));
     }
+    public boolean isValidCoord(Point p) { return isValidCoord(p.x,p.y); }
 
     /**
      * prints the current damage and pollution data
